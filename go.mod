@@ -4,6 +4,7 @@ go 1.17
 
 require (
 	github.com/antchfx/htmlquery v1.2.4
+	github.com/pkg/errors v0.9.1
 	go.uber.org/zap v1.19.1
 	golang.org/x/net v0.0.0-20210929193557-e81a3d93ecf6
 )

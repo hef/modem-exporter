@@ -2,6 +2,8 @@ package client
 
 import (
 	"github.com/antchfx/htmlquery"
+	"github.com/pkg/errors"
+	"go.uber.org/zap"
 	"strconv"
 	"strings"
 )
@@ -31,10 +33,19 @@ func (c *Client) Status() (downstreamBondendChannels []DownstreamBoundedChannel,
 
 	//log.Printf("original: %s", debugPrint(doc))
 
-	rows := htmlquery.Find(doc, `//table[.//th[.="Downstream Bonded Channels"]]//tr`)[2:]
+	rows := htmlquery.Find(doc, `//table[.//th[.="Downstream Bonded Channels"]]//tr`)
+	if rows == nil {
+		c.logger.Error("couldn't find 'Downstream Bonded Channels' table")
+		return nil, errors.New("couldn't find downstream bonded channels table")
+	}
+	if len(rows) <= 2 {
+		c.logger.Error("couldn't find enough rows in downstream bonded channels table", zap.Int("rows", len(rows)))
+		return nil, errors.New("downstream bonded channels table didn't have enoigh rows")
+	}
+
 	var x []DownstreamBoundedChannel
 
-	for _, row := range rows {
+	for _, row := range rows[2:] {
 		//log.Printf("result: %s", debugPrint(row))
 		channelId := htmlquery.FindOne(row, `//td[1]/text()`)
 		lockStatus := htmlquery.FindOne(row, `//td[2]/text()`)

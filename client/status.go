@@ -2,13 +2,14 @@ package client
 
 import (
 	"github.com/antchfx/htmlquery"
-	"log"
 	"strconv"
 	"strings"
 )
 
-type DownstreamBoundedChannels struct {
+type DownstreamBoundedChannel struct {
 	ChannelId      int
+	LockStatus     string
+	Modulation     string
 	Frequency      int
 	Power          float64
 	SnrSmr         float64
@@ -16,39 +17,41 @@ type DownstreamBoundedChannels struct {
 	Uncorrectables int
 }
 
-func (c *Client) Status() (err error) {
+func (c *Client) Status() (downstreamBondendChannels []DownstreamBoundedChannel, err error) {
 
-	req, err := c.newRequest("http://192.168.100.1/cmconnectionstatus.html")
+	req, err := c.newRequest("https://192.168.100.1/cmconnectionstatus.html")
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	doc, err := c.do(req)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	log.Printf("original: %s", debugPrint(doc))
+	//log.Printf("original: %s", debugPrint(doc))
 
 	rows := htmlquery.Find(doc, `//table[.//th[.="Downstream Bonded Channels"]]//tr`)[2:]
-	var x []DownstreamBoundedChannels
+	var x []DownstreamBoundedChannel
 
 	for _, row := range rows {
-		log.Printf("result: %s", debugPrint(row))
+		//log.Printf("result: %s", debugPrint(row))
 		channelId := htmlquery.FindOne(row, `//td[1]/text()`)
-		//lockStatus := htmlquery.FindOne(row, `//td[2]/text()`)
-		//modulation := htmlquery.FindOne(row, `//td[3]/text()`)
+		lockStatus := htmlquery.FindOne(row, `//td[2]/text()`)
+		modulation := htmlquery.FindOne(row, `//td[3]/text()`)
 		frequency := htmlquery.FindOne(row, `//td[4]/text()`)
 		power := htmlquery.FindOne(row, `//td[5]/text()`)
 		snr := htmlquery.FindOne(row, `//td[6]/text()`)
 		corrected := htmlquery.FindOne(row, `//td[7]/text()`)
 		Uncorrectables := htmlquery.FindOne(row, `//td[8]/text()`)
 
-		data := DownstreamBoundedChannels{}
+		data := DownstreamBoundedChannel{}
 		data.ChannelId, err = strconv.Atoi(channelId.Data)
 		if err != nil {
 			continue
 		}
+		data.LockStatus = lockStatus.Data
+		data.Modulation = modulation.Data
 		data.Frequency, err = strconv.Atoi(strings.TrimSuffix(frequency.Data, " Hz"))
 		if err != nil {
 			continue
@@ -72,5 +75,5 @@ func (c *Client) Status() (err error) {
 		x = append(x, data)
 	}
 
-	return nil
+	return x, nil
 }

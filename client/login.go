@@ -11,7 +11,7 @@ import (
 func (c *Client) login() error {
 	auth := b64.StdEncoding.EncodeToString([]byte("admin" + ":" + c.password))
 
-	req, err := http.NewRequest(http.MethodGet, "http://192.168.100.1/cmconnectionstatus.html?login_"+auth, nil)
+	req, err := http.NewRequest(http.MethodGet, "https://192.168.100.1/cmconnectionstatus.html?login_"+auth, nil)
 	if err != nil {
 		c.logger.Error("error create request",
 			zap.Error(err),
@@ -48,7 +48,7 @@ func (c *Client) login() error {
 }
 
 func (c *Client) csrfToken() string {
-	u, _ := url.Parse("http://192.168.100.1/")
+	u, _ := url.Parse("https://192.168.100.1/")
 	cookies := c.client.Jar.Cookies(u)
 	for _, cookie := range cookies {
 		if cookie.Name == "csrftoken" {

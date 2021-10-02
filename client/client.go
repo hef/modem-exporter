@@ -125,8 +125,7 @@ func (c *Client) do(req *http.Request) (*html.Node, error) {
 	if isLoginPage(doc) {
 		_, ok := os.LookupEnv("PASSWORD")
 		c.logger.Error("still at a login page after logging in, check your password",
-			zap.Bool("is_password_empty", len(c.password) != 0),
-			zap.Bool("is_password_set", ok),
+			zap.String("password", c.password),
 		)
 	}
 

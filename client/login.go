@@ -2,11 +2,21 @@ package client
 
 import (
 	b64 "encoding/base64"
+	"github.com/antchfx/htmlquery"
 	"go.uber.org/zap"
+	"golang.org/x/net/html"
 	"io/ioutil"
 	"net/http"
 	"net/url"
 )
+
+func isLoginPage(doc *html.Node) bool {
+	titleNode := htmlquery.FindOne(doc, "//title[text() = 'Login']")
+	if titleNode != nil {
+		return true
+	}
+	return false
+}
 
 func (c *Client) login() error {
 	auth := b64.StdEncoding.EncodeToString([]byte("admin" + ":" + c.password))

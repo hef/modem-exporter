@@ -35,6 +35,9 @@ func (c *Client) Status() (downstreamBondendChannels []DownstreamBoundedChannel,
 
 	rows := htmlquery.Find(doc, `//table[.//th[.="Downstream Bonded Channels"]]//tr`)
 	if rows == nil {
+		c.logger.Debug("couldn't find downstream bonded channels table.",
+			zap.String("doc", debugPrint(doc)),
+		)
 		c.logger.Error("couldn't find 'Downstream Bonded Channels' table")
 		return nil, errors.New("couldn't find downstream bonded channels table")
 	}

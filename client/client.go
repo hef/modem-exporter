@@ -1,9 +1,11 @@
 package client
 
 import (
+	"bytes"
 	"crypto/tls"
-	"github.com/PuerkitoBio/goquery"
+	"github.com/antchfx/htmlquery"
 	"go.uber.org/zap"
+	"golang.org/x/net/html"
 	"golang.org/x/net/publicsuffix"
 	"net/http"
 	"net/http/cookiejar"
@@ -45,7 +47,7 @@ func New(options ...Option) (*Client, error) {
 	return &c, nil
 }
 
-func (c *Client) newRequest(path string) (*http.Request, error) {
+func (c *Client) newRequest(path string) (doc *http.Request, err error) {
 
 	u, err := url.Parse(path)
 	if err != nil {
@@ -75,7 +77,7 @@ func (c *Client) newRequest(path string) (*http.Request, error) {
 	return req, nil
 }
 
-func (c *Client) do(req *http.Request) (*goquery.Document, error) {
+func (c *Client) do(req *http.Request) (*html.Node, error) {
 	resp, err := c.client.Do(req)
 	if err != nil {
 		c.logger.Error("error sending request",
@@ -84,15 +86,15 @@ func (c *Client) do(req *http.Request) (*goquery.Document, error) {
 		return nil, err
 	}
 
-	doc, err := goquery.NewDocumentFromReader(resp.Body)
+	doc, err := htmlquery.Parse(resp.Body)
 	if err != nil {
 		c.logger.Error("failed to parse response body",
 			zap.Error(err),
 		)
 	}
 
-	titleNode := doc.Find("title")
-	if titleNode.Text() == "Login" {
+	titleNode := htmlquery.FindOne(doc, "//title[text() = 'Login']")
+	if titleNode != nil {
 		err = c.login()
 		if err != nil {
 			c.logger.Error("error logging in",
@@ -100,6 +102,8 @@ func (c *Client) do(req *http.Request) (*goquery.Document, error) {
 			)
 			return nil, err
 		}
+	} else {
+		return doc, nil
 	}
 
 	req, err = c.newRequest(req.URL.String())
@@ -116,6 +120,18 @@ func (c *Client) do(req *http.Request) (*goquery.Document, error) {
 		)
 		return nil, err
 	}
-	doc, err = goquery.NewDocumentFromReader(resp.Body)
+	doc, err = htmlquery.Parse(resp.Body)
 	return doc, err
+}
+
+func debugPrint(node *html.Node) string {
+	var b bytes.Buffer
+	if node == nil {
+		return ""
+	}
+	err := html.Render(&b, node)
+	if err != nil {
+		panic(err)
+	}
+	return b.String()
 }

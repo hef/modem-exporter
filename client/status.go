@@ -1,16 +1,19 @@
 package client
 
-import "log"
+import (
+	"github.com/antchfx/htmlquery"
+	"log"
+	"strconv"
+	"strings"
+)
 
 type DownstreamBoundedChannels struct {
-	ChannelId      string
-	LockStatus     string
-	Modulation     string
-	Frequency      string
-	Power          string
-	SnrSmr         string
-	Corrected      string
-	Uncorrectables string
+	ChannelId      int
+	Frequency      int
+	Power          float64
+	SnrSmr         float64
+	Corrected      int
+	Uncorrectables int
 }
 
 func (c *Client) Status() (err error) {
@@ -25,14 +28,49 @@ func (c *Client) Status() (err error) {
 		return err
 	}
 
+	log.Printf("original: %s", debugPrint(doc))
 
-	// I really need xpath
-	//table := doc.Find("table >")
+	rows := htmlquery.Find(doc, `//table[.//th[.="Downstream Bonded Channels"]]//tr`)[2:]
+	var x []DownstreamBoundedChannels
 
-	//Downstream Bonded Channels
+	for _, row := range rows {
+		log.Printf("result: %s", debugPrint(row))
+		channelId := htmlquery.FindOne(row, `//td[1]/text()`)
+		//lockStatus := htmlquery.FindOne(row, `//td[2]/text()`)
+		//modulation := htmlquery.FindOne(row, `//td[3]/text()`)
+		frequency := htmlquery.FindOne(row, `//td[4]/text()`)
+		power := htmlquery.FindOne(row, `//td[5]/text()`)
+		snr := htmlquery.FindOne(row, `//td[6]/text()`)
+		corrected := htmlquery.FindOne(row, `//td[7]/text()`)
+		Uncorrectables := htmlquery.FindOne(row, `//td[8]/text()`)
 
-	html, _ := doc.Html()
-	log.Printf("%s", html)
+		data := DownstreamBoundedChannels{}
+		data.ChannelId, err = strconv.Atoi(channelId.Data)
+		if err != nil {
+			continue
+		}
+		data.Frequency, err = strconv.Atoi(strings.TrimSuffix(frequency.Data, " Hz"))
+		if err != nil {
+			continue
+		}
+		data.Power, err = strconv.ParseFloat(strings.TrimSuffix(power.Data, " dBmV"), 64)
+		if err != nil {
+			continue
+		}
+		data.SnrSmr, err = strconv.ParseFloat(strings.TrimSuffix(snr.Data, " dB"), 64)
+		if err != nil {
+			continue
+		}
+		data.Corrected, err = strconv.Atoi(corrected.Data)
+		if err != nil {
+			continue
+		}
+		data.Uncorrectables, err = strconv.Atoi(Uncorrectables.Data)
+		if err != nil {
+			continue
+		}
+		x = append(x, data)
+	}
 
 	return nil
 }

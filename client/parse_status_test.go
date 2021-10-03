@@ -93,4 +93,3 @@ func TestParseStatus(t *testing.T) {
 		}
 	}
 }
-

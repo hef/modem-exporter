@@ -73,13 +73,15 @@ func parseStatusPage(logger *zap.Logger, doc *html.Node) (downstreamBondendChann
 			continue
 		}
 
-
 		if lockStatus != nil {
 			data.LockStatus = lockStatus.Data
+		} else {
+			logger.Debug("failed to find lockstatus in Downstream table")
 		}
 
 		if modulation != nil {
 			data.Modulation = modulation.Data
+		} else {
 			logger.Debug("failed to find modulation in Downstream table")
 		}
 		if frequency != nil {

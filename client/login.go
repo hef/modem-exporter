@@ -50,11 +50,24 @@ func (c *Client) login() error {
 
 	c.client.Jar.SetCookies(req.URL, []*http.Cookie{
 		&http.Cookie{
-			Name:  "csrftoken",
-			Value: csrfToken,
+			Name:     "csrftoken",
+			Value:    csrfToken,
+			Secure:   true,
+			HttpOnly: true,
 		},
 	})
 	return nil
+}
+
+func (c *Client) setCsrfTokenOnUrl(u *url.URL) {
+	csrfToken := c.csrfToken()
+	if csrfToken != "" {
+		q := u.Query()
+		q.Set("ct_"+csrfToken, "")
+		u.RawQuery = q.Encode()
+		// Encode adds a trailing "=", but we need to remove it
+		u.RawQuery = u.RawQuery[:len(u.RawQuery)-1]
+	}
 }
 
 func (c *Client) csrfToken() string {

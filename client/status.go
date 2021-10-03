@@ -4,6 +4,7 @@ import (
 	"github.com/antchfx/htmlquery"
 	"github.com/pkg/errors"
 	"go.uber.org/zap"
+	"golang.org/x/net/html"
 	"strconv"
 	"strings"
 )
@@ -31,18 +32,20 @@ func (c *Client) Status() (downstreamBondendChannels []DownstreamBoundedChannel,
 		return nil, err
 	}
 
-	//log.Printf("original: %s", debugPrint(doc))
+	return parseStatusPage(c.logger, doc)
+}
 
+func parseStatusPage(logger *zap.Logger, doc *html.Node) (downstreamBondendChannels []DownstreamBoundedChannel, err error) {
 	rows := htmlquery.Find(doc, `//table[.//th[.="Downstream Bonded Channels"]]//tr`)
 	if rows == nil {
-		c.logger.Debug("couldn't find downstream bonded channels table.",
+		logger.Debug("couldn't find downstream bonded channels table.",
 			zap.String("doc", debugPrint(doc)),
 		)
-		c.logger.Error("couldn't find 'Downstream Bonded Channels' table")
+		logger.Error("couldn't find 'Downstream Bonded Channels' table")
 		return nil, errors.New("couldn't find downstream bonded channels table")
 	}
 	if len(rows) <= 2 {
-		c.logger.Error("couldn't find enough rows in downstream bonded channels table", zap.Int("rows", len(rows)))
+		logger.Error("couldn't find enough rows in downstream bonded channels table", zap.Int("rows", len(rows)))
 		return nil, errors.New("downstream bonded channels table didn't have enoigh rows")
 	}
 

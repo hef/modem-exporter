@@ -122,9 +122,7 @@ func (c *Client) do(req *http.Request) (*html.Node, error) {
 	doc, err = htmlquery.Parse(resp.Body)
 
 	if isLoginPage(doc) {
-		c.logger.Error("still at a login page after logging in, check your password",
-			zap.String("password", c.password),
-		)
+		c.logger.Error("still at a login page after logging in, check your password")
 	}
 
 	return doc, err

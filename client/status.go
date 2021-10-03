@@ -63,31 +63,52 @@ func parseStatusPage(logger *zap.Logger, doc *html.Node) (downstreamBondendChann
 		Uncorrectables := htmlquery.FindOne(row, `//td[8]/text()`)
 
 		data := DownstreamBoundedChannel{}
+		if channelId == nil {
+			logger.Error("failed to extract channel id from row in Downstream table, skipping row")
+			continue
+		}
 		data.ChannelId, err = strconv.Atoi(channelId.Data)
 		if err != nil {
+			logger.Error("failed to parse channel id from row in Downstream table, skipping row")
 			continue
 		}
-		data.LockStatus = lockStatus.Data
-		data.Modulation = modulation.Data
-		data.Frequency, err = strconv.Atoi(strings.TrimSuffix(frequency.Data, " Hz"))
-		if err != nil {
-			continue
+
+
+		if lockStatus != nil {
+			data.LockStatus = lockStatus.Data
 		}
-		data.Power, err = strconv.ParseFloat(strings.TrimSuffix(power.Data, " dBmV"), 64)
-		if err != nil {
-			continue
+
+		if modulation != nil {
+			data.Modulation = modulation.Data
+			logger.Debug("failed to find modulation in Downstream table")
 		}
-		data.SnrSmr, err = strconv.ParseFloat(strings.TrimSuffix(snr.Data, " dB"), 64)
-		if err != nil {
-			continue
+		if frequency != nil {
+			data.Frequency, err = strconv.Atoi(strings.TrimSuffix(frequency.Data, " Hz"))
+			if err != nil {
+				logger.Debug("failed to parse frequency data in Downstream table")
+			}
 		}
-		data.Corrected, err = strconv.Atoi(corrected.Data)
-		if err != nil {
-			continue
+
+		if power != nil {
+			data.Power, err = strconv.ParseFloat(strings.TrimSuffix(power.Data, " dBmV"), 64)
+			if err != nil {
+				logger.Debug("failed to parse power data in Downstream table")
+			}
 		}
-		data.Uncorrectables, err = strconv.Atoi(Uncorrectables.Data)
-		if err != nil {
-			continue
+
+		if snr != nil {
+			data.SnrSmr, err = strconv.ParseFloat(strings.TrimSuffix(snr.Data, " dB"), 64)
+			if err != nil {
+				logger.Debug("failed to parse SNR in downstream table")
+			}
+		}
+
+		if corrected != nil {
+			data.Corrected, _ = strconv.Atoi(corrected.Data)
+		}
+
+		if Uncorrectables != nil {
+			data.Uncorrectables, _ = strconv.Atoi(Uncorrectables.Data)
 		}
 		x = append(x, data)
 	}

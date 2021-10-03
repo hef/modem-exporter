@@ -57,15 +57,6 @@ func (c *Client) newRequest(path string) (doc *http.Request, err error) {
 		)
 	}
 
-	csrfToken := c.csrfToken()
-	if csrfToken != "" {
-		q := u.Query()
-		q.Set("ct_"+csrfToken, "")
-		u.RawQuery = q.Encode()
-		// Encode adds a trailing "=", but we need to remove it
-		u.RawQuery = u.RawQuery[:len(u.RawQuery)-1]
-	}
-
 	req, err := http.NewRequest(http.MethodGet, u.String(), nil)
 	if err != nil {
 		c.logger.Error("error creating request",
@@ -77,7 +68,11 @@ func (c *Client) newRequest(path string) (doc *http.Request, err error) {
 	return req, nil
 }
 
-func (c *Client) do(req *http.Request) (*html.Node, error) {
+func (c *Client) do(r *http.Request) (*html.Node, error) {
+
+	req := r.Clone(r.Context())
+	c.setCsrfToken(req.URL)
+
 	resp, err := c.client.Do(req)
 	if err != nil {
 		c.logger.Error("error sending request",
@@ -105,7 +100,8 @@ func (c *Client) do(req *http.Request) (*html.Node, error) {
 		return doc, nil
 	}
 
-	req, err = c.newRequest(req.URL.String())
+	req = r.Clone(r.Context())
+	c.setCsrfToken(req.URL)
 	if err != nil {
 		c.logger.Error("error sending request",
 			zap.Error(err),
@@ -122,9 +118,7 @@ func (c *Client) do(req *http.Request) (*html.Node, error) {
 	doc, err = htmlquery.Parse(resp.Body)
 
 	if isLoginPage(doc) {
-		c.logger.Error("still at a login page after logging in, check your password",
-			zap.String("password", c.password),
-		)
+		c.logger.Error("still at a login page after logging in, check your password")
 	}
 
 	return doc, err

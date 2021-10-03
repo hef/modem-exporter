@@ -4,6 +4,7 @@ import (
 	"github.com/antchfx/htmlquery"
 	"github.com/pkg/errors"
 	"go.uber.org/zap"
+	"golang.org/x/net/html"
 	"strconv"
 	"strings"
 )
@@ -31,18 +32,20 @@ func (c *Client) Status() (downstreamBondendChannels []DownstreamBoundedChannel,
 		return nil, err
 	}
 
-	//log.Printf("original: %s", debugPrint(doc))
+	return parseStatusPage(c.logger, doc)
+}
 
+func parseStatusPage(logger *zap.Logger, doc *html.Node) (downstreamBondendChannels []DownstreamBoundedChannel, err error) {
 	rows := htmlquery.Find(doc, `//table[.//th[.="Downstream Bonded Channels"]]//tr`)
 	if rows == nil {
-		c.logger.Debug("couldn't find downstream bonded channels table.",
+		logger.Debug("couldn't find downstream bonded channels table.",
 			zap.String("doc", debugPrint(doc)),
 		)
-		c.logger.Error("couldn't find 'Downstream Bonded Channels' table")
+		logger.Error("couldn't find 'Downstream Bonded Channels' table")
 		return nil, errors.New("couldn't find downstream bonded channels table")
 	}
 	if len(rows) <= 2 {
-		c.logger.Error("couldn't find enough rows in downstream bonded channels table", zap.Int("rows", len(rows)))
+		logger.Error("couldn't find enough rows in downstream bonded channels table", zap.Int("rows", len(rows)))
 		return nil, errors.New("downstream bonded channels table didn't have enoigh rows")
 	}
 
@@ -60,31 +63,54 @@ func (c *Client) Status() (downstreamBondendChannels []DownstreamBoundedChannel,
 		Uncorrectables := htmlquery.FindOne(row, `//td[8]/text()`)
 
 		data := DownstreamBoundedChannel{}
+		if channelId == nil {
+			logger.Error("failed to extract channel id from row in Downstream table, skipping row")
+			continue
+		}
 		data.ChannelId, err = strconv.Atoi(channelId.Data)
 		if err != nil {
+			logger.Error("failed to parse channel id from row in Downstream table, skipping row")
 			continue
 		}
-		data.LockStatus = lockStatus.Data
-		data.Modulation = modulation.Data
-		data.Frequency, err = strconv.Atoi(strings.TrimSuffix(frequency.Data, " Hz"))
-		if err != nil {
-			continue
+
+		if lockStatus != nil {
+			data.LockStatus = lockStatus.Data
+		} else {
+			logger.Debug("failed to find lockstatus in Downstream table")
 		}
-		data.Power, err = strconv.ParseFloat(strings.TrimSuffix(power.Data, " dBmV"), 64)
-		if err != nil {
-			continue
+
+		if modulation != nil {
+			data.Modulation = modulation.Data
+		} else {
+			logger.Debug("failed to find modulation in Downstream table")
 		}
-		data.SnrSmr, err = strconv.ParseFloat(strings.TrimSuffix(snr.Data, " dB"), 64)
-		if err != nil {
-			continue
+		if frequency != nil {
+			data.Frequency, err = strconv.Atoi(strings.TrimSuffix(frequency.Data, " Hz"))
+			if err != nil {
+				logger.Debug("failed to parse frequency data in Downstream table")
+			}
 		}
-		data.Corrected, err = strconv.Atoi(corrected.Data)
-		if err != nil {
-			continue
+
+		if power != nil {
+			data.Power, err = strconv.ParseFloat(strings.TrimSuffix(power.Data, " dBmV"), 64)
+			if err != nil {
+				logger.Debug("failed to parse power data in Downstream table")
+			}
 		}
-		data.Uncorrectables, err = strconv.Atoi(Uncorrectables.Data)
-		if err != nil {
-			continue
+
+		if snr != nil {
+			data.SnrSmr, err = strconv.ParseFloat(strings.TrimSuffix(snr.Data, " dB"), 64)
+			if err != nil {
+				logger.Debug("failed to parse SNR in downstream table")
+			}
+		}
+
+		if corrected != nil {
+			data.Corrected, _ = strconv.Atoi(corrected.Data)
+		}
+
+		if Uncorrectables != nil {
+			data.Uncorrectables, _ = strconv.Atoi(Uncorrectables.Data)
 		}
 		x = append(x, data)
 	}

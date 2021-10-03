@@ -71,7 +71,7 @@ func (c *Client) newRequest(path string) (doc *http.Request, err error) {
 func (c *Client) do(r *http.Request) (*html.Node, error) {
 
 	req := r.Clone(r.Context())
-	c.setCsrfToken(req.URL)
+	c.setCsrfTokenOnUrl(req.URL)
 
 	resp, err := c.client.Do(req)
 	if err != nil {
@@ -101,7 +101,7 @@ func (c *Client) do(r *http.Request) (*html.Node, error) {
 	}
 
 	req = r.Clone(r.Context())
-	c.setCsrfToken(req.URL)
+	c.setCsrfTokenOnUrl(req.URL)
 	if err != nil {
 		c.logger.Error("error sending request",
 			zap.Error(err),

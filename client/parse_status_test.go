@@ -18,12 +18,12 @@ func TestParseStatus(t *testing.T) {
 		t.Errorf("failed to parse file: %s", err)
 	}
 
-	actual, err := parseStatusPage(zap.NewNop(), doc)
+	actualDownstreamChannels, actualUpstreamChannels, err := parseStatusPage(zap.NewNop(), doc)
 	if err != nil {
 		t.Errorf("unexpected error parsing status page: %s", err)
 	}
 
-	expected := []DownstreamBoundedChannel{
+	expectedDownstreamChannels := []DownstreamBoundedChannel{
 		{5, "Locked", "QAM256", 507000000, 3.8, 33.8, 2968242, 205686},
 		{1, "Locked", "QAM256", 477000000, 4.6, 42.2, 68, 122},
 		{2, "Locked", "QAM256", 483000000, 4.9, 42.5, 78, 124},
@@ -58,14 +58,14 @@ func TestParseStatus(t *testing.T) {
 		{45, "Locked", "QAM256", 417000000, 4.3, 41.5, 62, 16},
 	}
 
-	if len(expected) != len(actual) {
-		t.Errorf("mismatch in row count, expected %d, got %d", len(expected), len(actual))
+	if len(expectedDownstreamChannels) != len(actualDownstreamChannels) {
+		t.Errorf("mismatch in row count, expected %d, got %d", len(expectedDownstreamChannels), len(actualDownstreamChannels))
 	}
 
-	for rowNumber, actualRow := range actual {
+	for rowNumber, actualRow := range actualDownstreamChannels {
 
-		if rowNumber < len(expected) {
-			expectedRow := expected[rowNumber]
+		if rowNumber < len(expectedDownstreamChannels) {
+			expectedRow := expectedDownstreamChannels[rowNumber]
 			if expectedRow.ChannelId != actualRow.ChannelId {
 				t.Errorf("unexpected ChannelId in row %d, expected %d, got %d", rowNumber, expectedRow.ChannelId, actualRow.ChannelId)
 			}
@@ -79,7 +79,7 @@ func TestParseStatus(t *testing.T) {
 				t.Errorf("unexpected Frequency in row %d, expected %d, got %d", rowNumber, expectedRow.Frequency, actualRow.Frequency)
 			}
 			if expectedRow.Power != actualRow.Power {
-				t.Errorf("unexpected Frequency in row %d, expected %f, got %f", rowNumber, expectedRow.Power, actualRow.Power)
+				t.Errorf("unexpected Power in row %d, expected %f, got %f", rowNumber, expectedRow.Power, actualRow.Power)
 			}
 			if expectedRow.SnrSmr != actualRow.SnrSmr {
 				t.Errorf("unexpected SnrSmr in row %d, expected %f, got %f", rowNumber, expectedRow.SnrSmr, actualRow.SnrSmr)
@@ -89,6 +89,44 @@ func TestParseStatus(t *testing.T) {
 			}
 			if expectedRow.Uncorrectables != actualRow.Uncorrectables {
 				t.Errorf("unexpected Uncorrectables in row %d, expected %d, got %d", rowNumber, expectedRow.Uncorrectables, actualRow.Uncorrectables)
+			}
+		}
+	}
+
+	expectedUpstreamChannels := []UpstreamBoundedChannel{
+		{1, 1, "Locked", "SC-QAM Upstream", 35600000, 6400000, 45.0},
+		{2, 2, "Locked", "SC-QAM Upstream", 29200000, 6400000, 43.0},
+		{3, 3, "Locked", "SC-QAM Upstream", 22800000, 6400000, 45.0},
+		{4, 4, "Locked", "SC-QAM Upstream", 16400000, 6400000, 45.0},
+		{5, 5, "Locked", "SC-QAM Upstream", 40400000, 3200000, 42.0},
+	}
+	if len(expectedUpstreamChannels) != len(actualUpstreamChannels) {
+		t.Errorf("mismatch in row count, expected %d, got %d", len(expectedUpstreamChannels), len(actualUpstreamChannels))
+	}
+	for rowNumber, actualRow := range actualUpstreamChannels {
+
+		if rowNumber < len(expectedUpstreamChannels) {
+			expectedRow := expectedUpstreamChannels[rowNumber]
+			if expectedRow.Channel != actualRow.Channel {
+				t.Errorf("unexpected Channel in row %d, expected %d, got %d", rowNumber, expectedRow.Channel, actualRow.Channel)
+			}
+			if expectedRow.ChannelId != actualRow.ChannelId {
+				t.Errorf("unexpected ChannelId in row %d, expected %d, got %d", rowNumber, expectedRow.ChannelId, actualRow.ChannelId)
+			}
+			if expectedRow.LockStatus != actualRow.LockStatus {
+				t.Errorf("unexpected Lockstatus in row %d, expected %s, got %s", rowNumber, expectedRow.LockStatus, actualRow.LockStatus)
+			}
+			if expectedRow.UsChannelType != actualRow.UsChannelType {
+				t.Errorf("unexpected US Channel Type in row %d, expected %s, got %s", rowNumber, expectedRow.UsChannelType, actualRow.UsChannelType)
+			}
+			if expectedRow.Frequency != actualRow.Frequency {
+				t.Errorf("unexpected Frequency in row %d, expected %d, got %d", rowNumber, expectedRow.Frequency, actualRow.Frequency)
+			}
+			if expectedRow.Width != actualRow.Width {
+				t.Errorf("unexpected Width in row %d, expected %d, got %d", rowNumber, expectedRow.Width, actualRow.Width)
+			}
+			if expectedRow.Power != actualRow.Power {
+				t.Errorf("unexpected Power in row %d, expected %f, got %f", rowNumber, expectedRow.Power, actualRow.Power)
 			}
 		}
 	}

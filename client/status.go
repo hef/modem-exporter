@@ -20,36 +20,44 @@ type DownstreamBoundedChannel struct {
 	Uncorrectables int
 }
 
-func (c *Client) Status() (downstreamBondendChannels []DownstreamBoundedChannel, err error) {
+type UpstreamBoundedChannel struct {
+	Channel       int
+	ChannelId     int
+	LockStatus    string
+	UsChannelType string
+	Frequency     int
+	Width         int
+	Power         float64
+}
+
+func (c *Client) Status() (downstreamBondendChannels []DownstreamBoundedChannel, upstreamBondedChannel []UpstreamBoundedChannel, err error) {
 
 	req, err := c.newRequest("https://192.168.100.1/cmconnectionstatus.html")
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	doc, err := c.do(req)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	return parseStatusPage(c.logger, doc)
 }
 
-func parseStatusPage(logger *zap.Logger, doc *html.Node) (downstreamBondendChannels []DownstreamBoundedChannel, err error) {
+func parseStatusPage(logger *zap.Logger, doc *html.Node) (downstreamBondendChannels []DownstreamBoundedChannel, upstreamBondedChannels []UpstreamBoundedChannel, err error) {
 	rows := htmlquery.Find(doc, `//table[.//th[.="Downstream Bonded Channels"]]//tr`)
 	if rows == nil {
 		logger.Debug("couldn't find downstream bonded channels table.",
 			zap.String("doc", debugPrint(doc)),
 		)
 		logger.Error("couldn't find 'Downstream Bonded Channels' table")
-		return nil, errors.New("couldn't find downstream bonded channels table")
+		return nil, nil, errors.New("couldn't find downstream bonded channels table")
 	}
 	if len(rows) <= 2 {
 		logger.Error("couldn't find enough rows in downstream bonded channels table", zap.Int("rows", len(rows)))
-		return nil, errors.New("downstream bonded channels table didn't have enoigh rows")
+		return nil, nil, errors.New("downstream bonded channels table didn't have enoigh rows")
 	}
-
-	var x []DownstreamBoundedChannel
 
 	for _, row := range rows[2:] {
 		//log.Printf("result: %s", debugPrint(row))
@@ -112,8 +120,50 @@ func parseStatusPage(logger *zap.Logger, doc *html.Node) (downstreamBondendChann
 		if Uncorrectables != nil {
 			data.Uncorrectables, _ = strconv.Atoi(Uncorrectables.Data)
 		}
-		x = append(x, data)
+		downstreamBondendChannels = append(downstreamBondendChannels, data)
 	}
 
-	return x, nil
+	rows = htmlquery.Find(doc, `//table[.//th[.="Upstream Bonded Channels"]]//tr`)
+
+	for _, row := range rows[2:] {
+		channel := htmlquery.FindOne(row, `//td[1]/text()`)
+		channelId := htmlquery.FindOne(row, `//td[2]/text()`)
+		lockStatus := htmlquery.FindOne(row, `//td[3]/text()`)
+		usChannelType := htmlquery.FindOne(row, `//td[4]/text()`)
+		frequency := htmlquery.FindOne(row, `//td[5]/text()`)
+		width := htmlquery.FindOne(row, `//td[6]/text()`)
+		power := htmlquery.FindOne(row, `//td[7]/text()`)
+
+		data := UpstreamBoundedChannel{}
+
+		data.Channel, err = strconv.Atoi(channel.Data)
+		if err != nil {
+			logger.Debug("failed to extract channel from upstream channel")
+		}
+
+		data.ChannelId, err = strconv.Atoi(channelId.Data)
+		if err != nil {
+			logger.Debug("failed to extract channel id from upstream channel")
+		}
+
+		data.LockStatus = lockStatus.Data
+		data.UsChannelType = usChannelType.Data
+
+		data.Frequency, err = strconv.Atoi(strings.TrimSuffix(frequency.Data, " Hz"))
+		if err != nil {
+			logger.Debug("failed to extract frequency from upstream channel")
+		}
+
+		data.Width, err = strconv.Atoi(strings.TrimSuffix(width.Data, " Hz"))
+		if err != nil {
+			logger.Debug("failed to parse width from upstream channel")
+		}
+
+		data.Power, err = strconv.ParseFloat(strings.TrimSuffix(power.Data, " dBmV"), 64)
+		if err != nil {
+			logger.Debug("failed to parse power from upstream channel")
+		}
+		upstreamBondedChannels = append(upstreamBondedChannels, data)
+	}
+	return downstreamBondendChannels, upstreamBondedChannels, nil
 }

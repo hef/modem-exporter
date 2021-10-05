@@ -7,7 +7,7 @@ require (
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.11.0
 	go.uber.org/zap v1.19.1
-	golang.org/x/net v0.0.0-20211004164453-cedda3a722dd
+	golang.org/x/net v0.0.0-20211005001312-d4b1ae081e3b
 )
 
 require (

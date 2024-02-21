@@ -6,7 +6,7 @@ require (
 	github.com/antchfx/htmlquery v1.2.4
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.11.0
-	go.uber.org/zap v1.19.1
+	go.uber.org/zap v1.27.0
 	golang.org/x/net v0.0.0-20211014172544-2b766c08f1c0
 )
 
@@ -21,7 +21,7 @@ require (
 	github.com/prometheus/common v0.26.0 // indirect
 	github.com/prometheus/procfs v0.6.0 // indirect
 	go.uber.org/atomic v1.7.0 // indirect
-	go.uber.org/multierr v1.6.0 // indirect
+	go.uber.org/multierr v1.10.0 // indirect
 	golang.org/x/sys v0.0.0-20210603081109-ebe580a85c40 // indirect
 	golang.org/x/text v0.3.7 // indirect
 	google.golang.org/protobuf v1.26.0-rc.1 // indirect

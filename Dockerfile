@@ -1,4 +1,4 @@
-FROM golang:1.17.2 as builder
+FROM golang:1.22.1 as builder
 WORKDIR /build
 RUN echo nobody:x:65534:65534:nobody:/nonexistent:/sbin/nologin > passwd
 ENV CGO_ENABLED=0
